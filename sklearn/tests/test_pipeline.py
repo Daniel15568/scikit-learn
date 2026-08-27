@@ -21,12 +21,11 @@ from sklearn.base import (
     is_classifier,
     is_regressor,
 )
-from sklearn.callback.tests._utils import (
-    MaxIterEstimator,
+from sklearn.callback.tests._common.callbacks import (
     RecordingAutoPropagatedCallback,
     RecordingCallback,
-    skip_callback_test_if_wasm,
 )
+from sklearn.callback.tests._common.estimators import MaxIterEstimator
 from sklearn.cluster import KMeans
 from sklearn.datasets import load_iris
 from sklearn.decomposition import PCA, TruncatedSVD
@@ -76,6 +75,7 @@ from sklearn.utils._testing import (
     assert_allclose,
     assert_array_almost_equal,
     assert_array_equal,
+    skip_callback_test_if_wasm,
 )
 from sklearn.utils.fixes import CSR_CONTAINERS
 from sklearn.utils.validation import _check_feature_names, check_is_fitted
@@ -1120,7 +1120,7 @@ def test_classes_property():
     with pytest.raises(AttributeError):
         getattr(reg, "classes_")
 
-    clf = make_pipeline(SelectKBest(k=1), LogisticRegression(random_state=0))
+    clf = make_pipeline(SelectKBest(k=1), LogisticRegression())
     with pytest.raises(AttributeError):
         getattr(clf, "classes_")
     clf.fit(X, y)
@@ -1491,7 +1491,7 @@ def test_pipeline_memory():
     try:
         memory = joblib.Memory(location=cachedir, verbose=10)
         # Test with transformer + logistic regression
-        clf = LogisticRegression(random_state=0)
+        clf = LogisticRegression()
         transf = DummyTransf()
         pipe = Pipeline([("transf", clone(transf)), ("logreg", clf)])
         cached_pipe = Pipeline([("transf", transf), ("logreg", clf)], memory=memory)
@@ -1524,7 +1524,7 @@ def test_pipeline_memory():
         assert ts == cached_pipe.named_steps["transf"].timestamp_
         # Create a new pipeline with cloned estimators
         # Check that even changing the name step does not affect the cache hit
-        clf_2 = LogisticRegression(random_state=0)
+        clf_2 = LogisticRegression()
         transf_2 = DummyTransf()
         cached_pipe_2 = Pipeline(
             [("transf_2", transf_2), ("logreg", clf_2)], memory=memory
@@ -2042,7 +2042,8 @@ def test_feature_union_array_api_compliance(array_namespace, device_name, dtype_
         ]
     )
 
-    X_np_transformed = union.fit_transform(X_np)
+    with config_context(array_api_dispatch=False):
+        X_np_transformed = union.fit_transform(X_np)
 
     with config_context(array_api_dispatch=True):
         X_xp_transformed = union.fit_transform(X_xp)
